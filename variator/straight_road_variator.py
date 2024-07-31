@@ -18,63 +18,39 @@
 """
 
 from scenariogeneration import xodr, prettyprint, ScenarioGenerator
-import numpy as np
-import os
 import settings
 
 
 class Scenario(ScenarioGenerator):
-    def __init__(self, width, num_lane_left, num_lane_right):
+    def __init__(self, settings):
         super().__init__()
         self.naming = "parameter"
-        self.parameters["width"] = width
-        self.parameters["num_lane_left"] = num_lane_left
-        self.parameters["num_lane_right"] = num_lane_right
+        self.parameters["width"] = settings.width
+        self.parameters["num_lane_left"] = settings.num_lane_left
+        self.parameters["num_lane_right"] = settings.num_lane_right
+        self.parameters["start_road_grad"] = settings.start_road_grad
+        self.parameters["start_road_cant"] = settings.start_road_cant
 
     def road(self, **kwargs):
         odr = xodr.OpenDrive("myroad")
 
-        # ---------------- Road 1
-        planview = xodr.PlanView(0, 0, 0)
+        start_road = xodr.create_road(
+            xodr.Line(50), 0, left_lanes=kwargs["num_lane_left"], right_lanes=kwargs["num_lane_right"], lane_width=kwargs["width"]
+        )
 
-        # create some geometries and add to the planview
-        planview.add_geometry(xodr.Line(100))
+        start_road.add_elevation(0, 0, kwargs["start_road_grad"], 0, 0)
+        start_road.add_superelevation(0, 0, kwargs["start_road_cant"], 0, 0)
 
-        # create a solid roadmark
-        rm = xodr.RoadMark(xodr.RoadMarkType.solid, 0.2)
+        odr.add_road(start_road)
 
-        # create centerlane
-        centerlane_1 = xodr.Lane(a=2)
-        centerlane_1.add_roadmark(rm)
-        lanesec_1 = xodr.LaneSection(0, centerlane_1)
-
-        # add a driving lane
-        for i in range(kwargs["num_lane_left"]):
-            lane = xodr.Lane(a=kwargs["width"])
-            lane.add_roadmark(rm)
-            lanesec_1.add_left_lane(lane)
-
-        for i in range(kwargs["num_lane_right"]):
-            lane = xodr.Lane(a=kwargs["width"])
-            lane.add_roadmark(rm)
-            lanesec_1.add_right_lane(lane)
-
-        ## finalize the road
-        lanes_1 = xodr.Lanes()
-        lanes_1.add_lanesection(lanesec_1)
-
-        road = xodr.Road(1, planview, lanes_1)
-
-        odr.add_road(road)
-
-        # ------------------ Finalize
+        # adjust roads and lanes
         odr.adjust_roads_and_lanes()
 
         return odr
 
 
 if __name__ == "__main__":
-    sce = Scenario(settings.width, settings.num_lane_left, settings.num_lane_right)
+    sce = Scenario(settings)
     # Print the resulting xml
     # prettyprint(sce.road().get_element())
 
