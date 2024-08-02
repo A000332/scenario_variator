@@ -26,13 +26,14 @@ class Scenario(ScenarioGenerator):
         super().__init__()
         self.naming = "parameter"
         self.parameters["width"] = settings.width
+        self.parameters["max_speed"] = settings.max_speed
         self.parameters["num_lane_left"] = settings.num_lane_left
         self.parameters["num_lane_right"] = settings.num_lane_right
         self.parameters["start_road_grad"] = settings.start_road_grad
         self.parameters["start_road_cant"] = settings.start_road_cant
         self.is_clothoid = settings.is_clothoid
         if(self.is_clothoid):
-            self.parameters["mig_interval"] = settings.mig_interval
+            self.parameters["spiral_length"] = settings.spiral_length
             self.parameters["curv"] = settings.curv
             self.parameters["third_road_height"] = settings.third_road_height
             self.parameters["third_road_grad"] = settings.third_road_grad
@@ -46,18 +47,22 @@ class Scenario(ScenarioGenerator):
         )
         start_road.add_elevation(0, 0, kwargs["start_road_grad"], 0, 0)
         start_road.add_superelevation(0, 0, kwargs["start_road_cant"], 0, 0)
+        start_road.add_type("town", speed=kwargs["max_speed"], speed_unit="kph")
 
         odr.add_road(start_road)
 
         if(self.is_clothoid):
             second_road = xodr.create_road(
-                xodr.Spiral(0.00001, kwargs["curv"], kwargs["mig_interval"]), 1, left_lanes=kwargs["num_lane_left"], right_lanes=kwargs["num_lane_right"], lane_width=kwargs["width"]
+                xodr.Spiral(0.00001, kwargs["curv"], kwargs["spiral_length"]), 1, left_lanes=kwargs["num_lane_left"], right_lanes=kwargs["num_lane_right"], lane_width=kwargs["width"]
             )
             third_road = xodr.create_road(
                 xodr.Arc(kwargs["curv"], 50), 2, left_lanes=kwargs["num_lane_left"], right_lanes=kwargs["num_lane_right"], lane_width=kwargs["width"]
             )
             third_road.add_elevation(0, kwargs["third_road_height"], kwargs["third_road_grad"], 0, 0)
             third_road.add_superelevation(0, 0, kwargs["third_road_cant"], 0, 0)
+
+            second_road.add_type("town", speed=kwargs["max_speed"], speed_unit="kph")
+            third_road.add_type("town", speed=kwargs["max_speed"], speed_unit="kph")
 
             odr.add_road(second_road)
             odr.add_road(third_road)
